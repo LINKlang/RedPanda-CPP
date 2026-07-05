@@ -3,6 +3,8 @@ name: Build Windows x64 with MinGW
 on:
   workflow_dispatch:
   push:
+    tags-ignore:
+      - "**"
     paths:
       - ".github/workflows/build-windows-mingw64.yml"
       - "CMakeLists.txt"
