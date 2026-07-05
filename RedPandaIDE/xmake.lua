@@ -107,6 +107,7 @@ target("RedPandaIDE")
         "src/settings/executorsettings.cpp",
         "src/settings/languagesettings.cpp",
         "src/settings/uisettings.cpp",
+        "src/settings/wakatimesettings.cpp",
         -- utils
         "src/utils/escape.cpp",
         "src/utils/file.cpp",
@@ -134,6 +135,7 @@ target("RedPandaIDE")
         "src/thememanager",
         "src/todoparser",
         "src/toolsmanager",
+        "src/wakatimemanager",
         -- compiler
         "src/compiler/compiler",
         "src/compiler/compilermanager",
@@ -160,6 +162,7 @@ target("RedPandaIDE")
         "src/reformatter/basereformatter",
         -- settings dialog
         "src/settingsdialog/settingswidget",
+        "src/settingsdialog/toolswakatimewidget",
         -- widgets
         "src/widgets/bookmarkmodel",
         "src/widgets/classbrowser",
