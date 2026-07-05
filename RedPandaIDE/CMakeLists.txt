@@ -42,6 +42,7 @@ target_qt_plain_cpp(RedPandaIDE
     src/settings/executorsettings
     src/settings/languagesettings
     src/settings/uisettings
+    src/settings/wakatimesettings
     # utils
     src/utils/escape
     src/utils/file
@@ -70,6 +71,7 @@ target_moc_classes(RedPandaIDE
     src/thememanager
     src/todoparser
     src/toolsmanager
+    src/wakatimemanager
     # compiler
     src/compiler/compiler
     src/compiler/compilermanager
@@ -95,6 +97,7 @@ target_moc_classes(RedPandaIDE
     src/reformatter/astyleformatter
     # settings dialog
     src/settingsdialog/settingswidget
+    src/settingsdialog/toolswakatimewidget
     # widgets
     src/widgets/bookmarkmodel
     src/widgets/classbrowser

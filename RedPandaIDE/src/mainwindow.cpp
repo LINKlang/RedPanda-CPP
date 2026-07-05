@@ -69,6 +69,7 @@
 #include "shortcutmanager.h"
 #include "colorscheme.h"
 #include "thememanager.h"
+#include "wakatimemanager.h"
 #include "widgets/darkfusionstyle.h"
 #include "widgets/lightfusionstyle.h"
 #include "problems/problemcasevalidator.h"
@@ -333,6 +334,7 @@ MainWindow::MainWindow(QWidget *parent)
                              tr("Error"),
                              e.reason());
     }
+    mWakaTimeManager = new WakaTimeManager{this};
     mBookmarkModel = new BookmarkModel{this};
     try {
         mBookmarkModel->loadBookmarks(includeTrailingPathDelimiter(pSettings->dirs().config())
@@ -1071,6 +1073,10 @@ void MainWindow::updateFileTypeActions(const Editor* e)
 
 void MainWindow::applySettings()
 {
+    if (mWakaTimeManager) {
+        mWakaTimeManager->reloadSettings();
+    }
+
     ThemeManager themeManager;
     PAppTheme appTheme;
     try {
@@ -8765,6 +8771,11 @@ ToolsManager *MainWindow::toolsManager() const
     return mToolsManager;
 }
 
+WakaTimeManager *MainWindow::wakaTimeManager() const
+{
+    return mWakaTimeManager;
+}
+
 
 void MainWindow::on_actionExport_As_RTF_triggered()
 {
@@ -10806,4 +10817,3 @@ OJProblemSetModel *MainWindow::getOJProblemSetModel() const
 {
     return mOJProblemSetModel;
 }
-

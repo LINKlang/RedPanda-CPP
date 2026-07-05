@@ -55,6 +55,7 @@ Settings::Settings(const QString &filename):
     mCodeFormatter{&mPersistor},
     mCompile{&mPersistor},
     mUI{&mPersistor},
+    mWakaTime{&mPersistor},
 #ifdef ENABLE_VCS
     mVCS{&mPersistor},
 #endif
@@ -74,6 +75,7 @@ void Settings::load()
     mCodeFormatter.load();
     mCompile.load();
     mUI.load();
+    mWakaTime.load();
     mDirs.load();
 #ifdef ENABLE_VCS
     mVCS.load();
@@ -142,6 +144,11 @@ UISettings &Settings::ui()
     return mUI;
 }
 
+WakaTimeSettings &Settings::wakatime()
+{
+    return mWakaTime;
+}
+
 #ifdef ENABLE_VCS
 VCSSettings &Settings::vcs()
 {
@@ -174,4 +181,3 @@ DebuggerSettings& Settings::debugger()
 #ifdef ENABLE_VCS
 
 #endif
-

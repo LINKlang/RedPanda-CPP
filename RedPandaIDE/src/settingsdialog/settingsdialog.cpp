@@ -55,6 +55,7 @@
 #include "projectmakefilewidget.h"
 #include "projectdllhostwidget.h"
 #include "toolsgeneralwidget.h"
+#include "toolswakatimewidget.h"
 #ifdef ENABLE_VCS
 #include "toolsgitwidget.h"
 #endif
@@ -237,6 +238,9 @@ PSettingsDialog SettingsDialog::optionDialog(ColorManager *colorManager, IconsMa
     dialog->addWidget(widget);
 
     widget = new ToolsGeneralWidget(tr("General"),tr("Tools"),iconsManager);
+    dialog->addWidget(widget);
+
+    widget = new ToolsWakaTimeWidget(tr("WakaTime"),tr("Tools"),iconsManager);
     dialog->addWidget(widget);
 
 #ifdef ENABLE_VCS

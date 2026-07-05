@@ -29,6 +29,7 @@
 #include "settings/executorsettings.h"
 #include "settings/languagesettings.h"
 #include "settings/uisettings.h"
+#include "settings/wakatimesettings.h"
 #ifdef ENABLE_VCS
 #include "settings/vcssettings.h"
 #endif
@@ -70,6 +71,7 @@ public:
     CodeFormatterSettings &codeFormatter();
     CompileSettings &compile();
     UISettings &ui();
+    WakaTimeSettings &wakatime();
 #ifdef ENABLE_VCS
     VCS &vcs();
 #endif
@@ -89,6 +91,7 @@ private:
     CodeFormatterSettings mCodeFormatter;
     CompileSettings mCompile;
     UISettings mUI;
+    WakaTimeSettings mWakaTime;
 #ifdef ENABLE_VCS
     VCSSetting mVCS;
 #endif
