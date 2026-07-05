@@ -1,5 +1,8 @@
 # RedPanda C++
 
+> [!NOTE]
+> This is a personal-use build with experimental WakaTime integration.
+
 Red Panda C++ (Old name: Red Panda Dev-C++ 7) is an fast ,lightweight, open source, and cross platform C/C++/GNU Assembly IDE.
 
 Upstream Simplified Chinese Website: [http://royqh.net/redpandacpp](http://royqh.net/redpandacpp)
