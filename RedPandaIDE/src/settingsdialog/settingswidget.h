@@ -31,6 +31,7 @@ public:
 
     void load();
     void save();
+    void detach();
 signals:
     void settingsChanged(bool changed);
 public slots:

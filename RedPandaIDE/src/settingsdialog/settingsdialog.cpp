@@ -99,6 +99,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 SettingsDialog::~SettingsDialog()
 {
     foreach (SettingsWidget* p, mSettingWidgets) {
+        p->detach();
         p->setParent(nullptr);
         delete p;
     }

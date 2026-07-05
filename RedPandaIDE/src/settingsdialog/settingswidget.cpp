@@ -76,6 +76,16 @@ void SettingsWidget::save()
     }
 }
 
+void SettingsWidget::detach()
+{
+    disconnectInputs();
+    if (mIconsManager) {
+        QObject::disconnect(mIconsManager, nullptr, this, nullptr);
+    }
+    QObject::disconnect(this, nullptr, nullptr, nullptr);
+    QObject::disconnect(nullptr, nullptr, this, nullptr);
+}
+
 void SettingsWidget::connectAbstractItemView(QAbstractItemView *pView)
 {
     connect(pView->model(),&QAbstractItemModel::rowsInserted,this,&SettingsWidget::setSettingsChanged);
@@ -143,7 +153,7 @@ void SettingsWidget::disconnectInputs()
         disconnect(p, &QLineEdit::textChanged, this, &SettingsWidget::setSettingsChanged);
     }
     for (QCheckBox* p:findChildren<QCheckBox*>()) {
-        disconnect(p, &QCheckBox::stateChanged, this, &SettingsWidget::setSettingsChanged);
+        disconnect(p, &QCheckBox::toggled, this, &SettingsWidget::setSettingsChanged);
     }
     for (QRadioButton* p:findChildren<QRadioButton*>()) {
         disconnect(p, &QRadioButton::toggled, this, &SettingsWidget::setSettingsChanged);
