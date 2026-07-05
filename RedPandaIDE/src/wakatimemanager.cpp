@@ -15,7 +15,7 @@ WakaTimeManager::WakaTimeManager(MainWindow *mainWindow):
     mMainWindow(mainWindow),
     mEnabled(false),
     mDebugEnabled(false),
-    mPlugin(QStringLiteral("redpanda-cpp-wakatime/%1").arg(QString::fromUtf8(REDPANDA_CPP_VERSION)))
+    mPlugin(QStringLiteral("redpanda-cpp-wakatime/wakabeta"))
 {
     reloadSettings();
 }
