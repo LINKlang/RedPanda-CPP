@@ -54,8 +54,11 @@ ToolsWakaTimeWidget::ToolsWakaTimeWidget(const QString &name, const QString &gro
     mTestButton(new QPushButton(tr("Test"), this)),
     mApiUrlEdit(new QLineEdit(this)),
     mApiKeyEdit(new QLineEdit(this)),
+    mApiUrlLabel(new QLabel(tr("Default API URL:"), this)),
+    mApiKeyLabel(new QLabel(tr("Default API Key:"), this)),
     mDebugCheckBox(new QCheckBox(tr("Debug output to Tools Output"), this)),
     mTestResultLabel(new QLabel(this)),
+    mApiUrlsEnabledCheckBox(new QCheckBox(tr("Enable API URLs"), this)),
     mRulesTable(new QTableWidget(this)),
     mAddRuleButton(new QPushButton(tr("Add"), this)),
     mRemoveRuleButton(new QPushButton(tr("Remove"), this)),
@@ -74,9 +77,9 @@ ToolsWakaTimeWidget::ToolsWakaTimeWidget(const QString &name, const QString &gro
     basicLayout->addWidget(mCliPathEdit, 1, 1);
     basicLayout->addWidget(mBrowseCliButton, 1, 2);
     basicLayout->addWidget(mTestButton, 1, 3);
-    basicLayout->addWidget(new QLabel(tr("Default API URL:"), this), 2, 0);
+    basicLayout->addWidget(mApiUrlLabel, 2, 0);
     basicLayout->addWidget(mApiUrlEdit, 2, 1, 1, 3);
-    basicLayout->addWidget(new QLabel(tr("Default API Key:"), this), 3, 0);
+    basicLayout->addWidget(mApiKeyLabel, 3, 0);
     basicLayout->addWidget(mApiKeyEdit, 3, 1, 1, 3);
     basicLayout->addWidget(mDebugCheckBox, 4, 0, 1, 4);
     basicLayout->addWidget(mTestResultLabel, 5, 0, 1, 4);
@@ -103,6 +106,7 @@ ToolsWakaTimeWidget::ToolsWakaTimeWidget(const QString &name, const QString &gro
     rulesButtonsLayout->addStretch();
 
     QVBoxLayout *rulesLayout = new QVBoxLayout();
+    rulesLayout->addWidget(mApiUrlsEnabledCheckBox);
     rulesLayout->addWidget(mRulesTable);
     rulesLayout->addLayout(rulesButtonsLayout);
 
@@ -124,6 +128,9 @@ ToolsWakaTimeWidget::ToolsWakaTimeWidget(const QString &name, const QString &gro
         }
     });
     connect(mTestButton, &QPushButton::clicked, this, &ToolsWakaTimeWidget::testCli);
+    connect(mApiUrlsEnabledCheckBox, &QCheckBox::toggled, this, [this] {
+        updateApiUrlsControls();
+    });
     connect(mAddRuleButton, &QPushButton::clicked, this, [this] {
         addRuleRow({});
         mRulesTable->setCurrentCell(mRulesTable->rowCount() - 1, 0);
@@ -156,8 +163,10 @@ void ToolsWakaTimeWidget::doLoad()
     mCliPathEdit->setText(pSettings->wakatime().cliPath());
     mApiUrlEdit->setText(pSettings->wakatime().apiUrl());
     mApiKeyEdit->setText(pSettings->wakatime().apiKey());
+    mApiUrlsEnabledCheckBox->setChecked(pSettings->wakatime().apiUrlsEnabled());
     mDebugCheckBox->setChecked(pSettings->wakatime().debugEnabled());
     setRules(pSettings->wakatime().apiUrlRules());
+    updateApiUrlsControls();
     mTestResultLabel->setVisible(false);
 }
 
@@ -168,6 +177,7 @@ void ToolsWakaTimeWidget::doSave()
     settings.setCliPath(mCliPathEdit->text());
     settings.setApiUrl(mApiUrlEdit->text());
     settings.setApiKey(mApiKeyEdit->text());
+    settings.setApiUrlsEnabled(mApiUrlsEnabledCheckBox->isChecked());
     settings.setDebugEnabled(mDebugCheckBox->isChecked());
     settings.setApiUrlRules(rules());
     settings.save();
@@ -256,4 +266,22 @@ void ToolsWakaTimeWidget::testCli()
         process->deleteLater();
     });
     process->start();
+}
+
+void ToolsWakaTimeWidget::updateApiUrlsControls()
+{
+    const bool apiUrlsEnabled = mApiUrlsEnabledCheckBox->isChecked();
+    mApiUrlLabel->setEnabled(!apiUrlsEnabled);
+    mApiUrlEdit->setEnabled(!apiUrlsEnabled);
+    mApiKeyLabel->setEnabled(!apiUrlsEnabled);
+    mApiKeyEdit->setEnabled(!apiUrlsEnabled);
+    mApiUrlLabel->setVisible(!apiUrlsEnabled);
+    mApiUrlEdit->setVisible(!apiUrlsEnabled);
+    mApiKeyLabel->setVisible(!apiUrlsEnabled);
+    mApiKeyEdit->setVisible(!apiUrlsEnabled);
+    mRulesTable->setEnabled(apiUrlsEnabled);
+    mAddRuleButton->setEnabled(apiUrlsEnabled);
+    mRemoveRuleButton->setEnabled(apiUrlsEnabled);
+    mMoveRuleUpButton->setEnabled(apiUrlsEnabled);
+    mMoveRuleDownButton->setEnabled(apiUrlsEnabled);
 }

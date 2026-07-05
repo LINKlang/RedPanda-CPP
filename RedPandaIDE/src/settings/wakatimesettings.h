@@ -27,6 +27,8 @@ public:
     void setApiKey(const QString &newApiKey);
     const QString &apiUrl() const;
     void setApiUrl(const QString &newApiUrl);
+    bool apiUrlsEnabled() const;
+    void setApiUrlsEnabled(bool newApiUrlsEnabled);
     const QList<WakaTimeApiUrlRule> &apiUrlRules() const;
     void setApiUrlRules(const QList<WakaTimeApiUrlRule> &newApiUrlRules);
     bool debugEnabled() const;
@@ -47,6 +49,7 @@ private:
     QString mCliPath;
     QString mApiKey;
     QString mApiUrl;
+    bool mApiUrlsEnabled;
     QList<WakaTimeApiUrlRule> mApiUrlRules;
     bool mDebugEnabled;
 };

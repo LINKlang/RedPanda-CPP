@@ -30,6 +30,7 @@ private:
     void addRuleRow(const WakaTimeApiUrlRule &rule);
     void swapRows(int first, int second);
     void testCli();
+    void updateApiUrlsControls();
 
 private:
     QCheckBox *mEnabledCheckBox;
@@ -38,8 +39,11 @@ private:
     QPushButton *mTestButton;
     QLineEdit *mApiUrlEdit;
     QLineEdit *mApiKeyEdit;
+    QLabel *mApiUrlLabel;
+    QLabel *mApiKeyLabel;
     QCheckBox *mDebugCheckBox;
     QLabel *mTestResultLabel;
+    QCheckBox *mApiUrlsEnabledCheckBox;
     QTableWidget *mRulesTable;
     QPushButton *mAddRuleButton;
     QPushButton *mRemoveRuleButton;

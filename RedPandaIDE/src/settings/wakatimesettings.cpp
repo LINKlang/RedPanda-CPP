@@ -23,6 +23,7 @@ WakaTimeSettings::WakaTimeSettings(SettingsPersistor *persistor):
     BaseSettings{persistor, SETTING_WAKATIME},
     mEnabled(false),
     mApiUrl(DEFAULT_API_URL),
+    mApiUrlsEnabled(false),
     mDebugEnabled(false)
 {
 }
@@ -65,6 +66,16 @@ const QString &WakaTimeSettings::apiUrl() const
 void WakaTimeSettings::setApiUrl(const QString &newApiUrl)
 {
     mApiUrl = newApiUrl.trimmed().isEmpty() ? DEFAULT_API_URL : newApiUrl.trimmed();
+}
+
+bool WakaTimeSettings::apiUrlsEnabled() const
+{
+    return mApiUrlsEnabled;
+}
+
+void WakaTimeSettings::setApiUrlsEnabled(bool newApiUrlsEnabled)
+{
+    mApiUrlsEnabled = newApiUrlsEnabled;
 }
 
 const QList<WakaTimeApiUrlRule> &WakaTimeSettings::apiUrlRules() const
@@ -114,6 +125,7 @@ void WakaTimeSettings::doSave()
     saveValue("cli_path", mCliPath);
     saveValue("api_key", mApiKey);
     saveValue("api_url", mApiUrl);
+    saveValue("api_urls_enabled", mApiUrlsEnabled);
     saveValue("debug_enabled", mDebugEnabled);
 
     QJsonArray rules;
@@ -134,6 +146,7 @@ void WakaTimeSettings::doLoad()
     mCliPath = stringValue("cli_path", "");
     mApiKey = stringValue("api_key", "");
     setApiUrl(stringValue("api_url", DEFAULT_API_URL));
+    mApiUrlsEnabled = boolValue("api_urls_enabled", false);
     mDebugEnabled = boolValue("debug_enabled", false);
 
     mApiUrlRules.clear();
@@ -160,23 +173,26 @@ QString WakaTimeSettings::managedConfigText() const
     QString result;
     QTextStream stream(&result);
     stream << "[settings]\n";
-    stream << "api_key = " << sanitizeWakaTimeConfigValue(mApiKey) << "\n";
-    stream << "api_url = " << sanitizeWakaTimeConfigValue(mApiUrl) << "\n";
-    stream << "\n";
-    stream << "[api_urls]\n";
-    for (const WakaTimeApiUrlRule &rule: mApiUrlRules) {
-        const QString pattern = sanitizeWakaTimeConfigValue(rule.pattern).trimmed();
-        if (pattern.isEmpty()) {
-            continue;
-        }
-
-        const QString apiUrl = sanitizeWakaTimeConfigValue(rule.apiUrl).trimmed();
-        const QString apiKey = sanitizeWakaTimeConfigValue(rule.apiKey).trimmed();
-        stream << pattern << " =";
-        if (!apiUrl.isEmpty() || !apiKey.isEmpty()) {
-            stream << " " << apiUrl << "|" << apiKey;
-        }
+    if (!mApiUrlsEnabled) {
+        stream << "api_key = " << sanitizeWakaTimeConfigValue(mApiKey) << "\n";
+        stream << "api_url = " << sanitizeWakaTimeConfigValue(mApiUrl) << "\n";
+    } else {
         stream << "\n";
+        stream << "[api_urls]\n";
+        for (const WakaTimeApiUrlRule &rule: mApiUrlRules) {
+            const QString pattern = sanitizeWakaTimeConfigValue(rule.pattern).trimmed();
+            if (pattern.isEmpty()) {
+                continue;
+            }
+
+            const QString apiUrl = sanitizeWakaTimeConfigValue(rule.apiUrl).trimmed();
+            const QString apiKey = sanitizeWakaTimeConfigValue(rule.apiKey).trimmed();
+            stream << pattern << " =";
+            if (!apiUrl.isEmpty() || !apiKey.isEmpty()) {
+                stream << " " << apiUrl << "|" << apiKey;
+            }
+            stream << "\n";
+        }
     }
     return result;
 }
