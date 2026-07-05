@@ -9,7 +9,6 @@
 #include <QProcess>
 
 static constexpr qint64 WAKATIME_HEARTBEAT_THROTTLE_MS = 2 * 60 * 1000;
-static constexpr char WAKATIME_PLUGIN_VERSION[] = "0.0.2";
 
 WakaTimeManager::WakaTimeManager(MainWindow *mainWindow):
     QObject(mainWindow),
@@ -18,7 +17,7 @@ WakaTimeManager::WakaTimeManager(MainWindow *mainWindow):
     mDebugEnabled(false),
     mPlugin(QStringLiteral("redpanda-cpp/%1 redpanda-cpp-wakatime/%2")
                 .arg(QString::fromUtf8(REDPANDA_CPP_VERSION),
-                     QString::fromLatin1(WAKATIME_PLUGIN_VERSION)))
+                     QString::fromUtf8(WAKATIME_PLUGIN_VERSION)))
 {
     reloadSettings();
 }
