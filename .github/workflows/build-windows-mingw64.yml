@@ -3,7 +3,7 @@ name: Build Windows x64 with MinGW
 on:
   workflow_dispatch:
   push:
-    tags-ignore:
+    branches:
       - "**"
     paths:
       - ".github/workflows/build-windows-mingw64.yml"
