@@ -119,7 +119,6 @@ Editor::Editor(QWidget *parent):
 
     mCodeSnippetsManager = nullptr;
 
-    mGetSharedParserFunc = nullptr;
     mGetOpennedEditorFunc  = nullptr;
     mGetFileStreamFunc = nullptr;
     mCanShowEvalTipFunc = nullptr;
@@ -272,7 +271,7 @@ void Editor::convertToEncoding(const QByteArray &encoding)
 
 bool Editor::save(bool force, bool doReparse) {
     if (this->mIsNew && !force) {
-        return saveAs();
+        return saveAs("", doReparse);
     }    
     try {
         if (mEditorSettings->autoFormatWhenSaved()) {
@@ -311,7 +310,7 @@ bool Editor::save(bool force, bool doReparse) {
     return true;
 }
 
-bool Editor::saveAs(const QString &name){
+bool Editor::saveAs(const QString &name, bool doCheckSyntax){
     QString newName = name;
     QString oldName = mFilename;
     if (name.isEmpty()) {
@@ -386,8 +385,11 @@ bool Editor::saveAs(const QString &name){
         mSyntaxIssues.clear();
     }
     reparse();
-    if (mEditorSettings->syntaxCheckWhenSave())
-        checkSyntaxInBack();
+    if (doCheckSyntax) {
+        if (mEditorSettings->syntaxCheckWhenSave())
+            checkSyntaxInBack();
+    }
+    reparseTodo();
     if (!shouldOpenInReadonly()) {
         setReadOnly(false);
     }
@@ -3114,8 +3116,8 @@ void Editor::print()
     QString html = exporter.text();
     QTextDocument doc;
 
-    doc.setDefaultFont(font());
     doc.setHtml(html);
+    doc.setDefaultFont(font());
     QPainter painter(&printer);
     if (!painter.isActive()) return;
 
@@ -4583,16 +4585,6 @@ const GetOpennedEditorFunc &Editor::getOpennedEditorFunc() const
 void Editor::setGetOpennedFunc(const GetOpennedEditorFunc &newOpennedEditorProviderCallBack)
 {
     mGetOpennedEditorFunc = newOpennedEditorProviderCallBack;
-}
-
-const GetSharedParserrFunc &Editor::getSharedParserFunc() const
-{
-    return mGetSharedParserFunc;
-}
-
-void Editor::setGetSharedParserFunc(const GetSharedParserrFunc &newSharedParserProviderCallBack)
-{
-    mGetSharedParserFunc = newSharedParserProviderCallBack;
 }
 
 CodeCompletionPopup *Editor::completionPopup() const

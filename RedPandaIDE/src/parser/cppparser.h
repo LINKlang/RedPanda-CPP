@@ -560,7 +560,7 @@ private:
     void handleAccessibilitySpecifiers(KeywordType keywordType, int maxIndex);
     bool handleStatement(int maxIndex);
     void handleStructs(bool isTypedef, int maxIndex);
-    void handleStructredBinding(const QString& sType, int maxIndex);
+    void handleStructuredBinding(const QString& sType, int maxIndex);
     void handleUsing(int maxIndex);
     void handleVar(const QString& typePrefix,bool isExtern,bool isStatic, int maxIndex);
     void handleInheritance(PStatement derivedClass, PClassInheritanceInfo pInfo);
@@ -761,7 +761,7 @@ private:
     QHash<QString,PStatementList> mNamespaces;  // namespace and the statements in its scope
     QList<PClassInheritanceInfo> mClassInheritances;
     QSet<QString> mInlineNamespaces;
-    bool mStopParse;
+    bool mStopForReset;
 #ifdef QT_DEBUG
     int mLastIndex;
 #endif

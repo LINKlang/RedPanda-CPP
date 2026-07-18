@@ -72,7 +72,7 @@ CppParser::CppParser() : QObject{nullptr},
     mCppKeywords = CppKeywords;
     mCppTypeKeywords = CppTypeKeywords;
     mEnabled = true;
-
+    mStopForReset = false;
     internalClear();
 
     //mNamespaces;
@@ -1197,6 +1197,10 @@ void CppParser::resetParser()
             if (!mParsing && mLockCount ==0) {
                 mParsing = true;
                 break;
+            } else {
+                mPreprocessor.stopForParserReset();
+                mTokenizer.stopForParserReset();
+                mStopForReset = true;
             }
         }
         QThread::msleep(50);
@@ -1206,6 +1210,7 @@ void CppParser::resetParser()
     {
         auto action = finally([this]{
             mParsing = false;
+            mStopForReset = false;
         });
         emit  onBusy();
         mUniqId = 0;
@@ -2225,7 +2230,8 @@ void CppParser::checkAndHandleMethodOrVar(KeywordType keywordType, int maxIndex)
             mIndex=indexAfterParentheis;
         } else if (mTokenizer[indexAfterParentheis]->text=='(') {
             // operator overloading like (operator int)
-            if (mTokenizer[mIndex+1]->text=="operator") {
+            if (mTokenizer[mIndex+1]->text=="operator"
+                    || mTokenizer[mIndex+1]->text.endsWith("::operator")) {
                 mIndex=indexAfterParentheis;
                 handleMethod(StatementKind::Function,"",
                              mergeArgs(mIndex+1,mTokenizer[mIndex]->matchIndex-1),
@@ -2238,7 +2244,8 @@ void CppParser::checkAndHandleMethodOrVar(KeywordType keywordType, int maxIndex)
             //array of pointers
             handleVar(currentText,false,false, maxIndex);
         } else {
-            if (currentText=="operator") {
+            if (currentText=="operator"
+                    || currentText.endsWith("::operator")) {
                 // operator overloading
                 handleOperatorOverloading(
                             "",
@@ -2283,6 +2290,7 @@ void CppParser::checkAndHandleMethodOrVar(KeywordType keywordType, int maxIndex)
         }
     } else if (mTokenizer[mIndex]->text == "*"
                || mTokenizer[mIndex]->text == "&"
+               || mTokenizer[mIndex]->text.startsWith("[") // structured binding
                || isIdentifier(mTokenizer[mIndex]->text)
                    ) {
         // it should be function/var
@@ -2303,7 +2311,8 @@ void CppParser::checkAndHandleMethodOrVar(KeywordType keywordType, int maxIndex)
 
         // Gather data for the string parts
         while (mIndex+1 < maxIndex) {
-            if (mTokenizer[mIndex]->text=="operator") {
+            if (mTokenizer[mIndex]->text=="operator"
+                    || mTokenizer[mIndex]->text.endsWith("::operator")) {
                 handleOperatorOverloading(sType,
                                       //sName,
                                       mIndex,
@@ -2417,13 +2426,13 @@ void CppParser::checkAndHandleMethodOrVar(KeywordType keywordType, int maxIndex)
                 return;
             } else if (
                        mTokenizer[mIndex + 1]->text == ','
-                       ||mTokenizer[mIndex + 1]->text == ';'
-                       ||mTokenizer[mIndex + 1]->text == ':'
-                       ||mTokenizer[mIndex + 1]->text == '{'
+                       || mTokenizer[mIndex + 1]->text == ';'
+                       || mTokenizer[mIndex + 1]->text == ':'
+                       || mTokenizer[mIndex + 1]->text == '{'
                        || mTokenizer[mIndex + 1]->text == '=') {
                 if (mTokenizer[mIndex]->text.startsWith("[")
                         && AutoTypes.contains(sType)) {
-                    handleStructredBinding(sType,maxIndex);
+                    handleStructuredBinding(sType,maxIndex);
                     return;
                 }
                 handleVar(sType+" "+sName,isExtern,isStatic, maxIndex);
@@ -3507,7 +3516,7 @@ void CppParser::handlePreprocessor()
             // Mention progress to user if we enter a NEW file
             bool ok;
             int line = QStringView(s.constBegin() + delimPos + 1, s.constEnd()).toInt(&ok);
-            if (line == 1) {
+            if (line == -1) {
                 mFilesScannedCount++;
                 mFilesToScanCount++;
                 emit progress(mCurrentFile,mFilesToScanCount,mFilesScannedCount);
@@ -3582,7 +3591,8 @@ bool CppParser::handleStatement(int maxIndex)
     Q_ASSERT(mIndex>=mLastIndex);
     mLastIndex=mIndex;
 #endif
-
+    if (mStopForReset)
+        return false;
     if (mIndex >= idx3) {
         //skip (previous handled) inline name space end
         mInlineNamespaceEndSkips.pop_back();
@@ -3614,7 +3624,8 @@ bool CppParser::handleStatement(int maxIndex)
 //        handleLambda();
     } else if (mTokenizer[mIndex]->text=='(') {
         if (mIndex+1<maxIndex &&
-                mTokenizer[mIndex+1]->text=="operator") {
+                (mTokenizer[mIndex+1]->text=="operator"
+                 || mTokenizer[mIndex+1]->text.endsWith("::operator"))) {
             // things like (operator int)
             mIndex++; //just skip '('
         } else
@@ -3989,52 +4000,73 @@ void CppParser::handleStructs(bool isTypedef, int maxIndex)
     }
 }
 
-void CppParser::handleStructredBinding(const QString &sType, int maxIndex)
+void CppParser::handleStructuredBinding(const QString &sType, int maxIndex)
 {
-    if (mIndex+1 < maxIndex
-            && ((mTokenizer[mIndex+1]->text == ":")
-                || (mTokenizer[mIndex+1]->text == "="))) {
-        QString typeName;
-        QString templateParams;
-        int endIndex = indexOfNextSemicolon(mIndex+2, maxIndex);
-        QString expressionText;
-        for (int i=mIndex+2;i<endIndex;i++) {
-            expressionText+=mTokenizer[i]->text+" ";
+    QString typeName;
+    QString templateParams;
+    int endIndex = indexOfNextSemicolon(mIndex+2, maxIndex);
+    QString expressionText;
+    for (int i=mIndex+2;i<endIndex;i++) {
+        expressionText+=mTokenizer[i]->text+" ";
+    }
+    QStringList phraseExpression = splitExpression(expressionText);
+    int pos = 0;
+    bool varsAdded = false;
+    PEvalStatement aliasStatement = doEvalExpression(mCurrentFile,
+                            phraseExpression,
+                            pos,
+                            getCurrentScope(),
+                            PEvalStatement(),
+                            true,false);
+    if(aliasStatement && aliasStatement->effectiveTypeStatement) {
+        if ( mTokenizer[mIndex+1]->text == ":" ) {
+            if (STLMaps.contains(aliasStatement->effectiveTypeStatement->fullName)) {
+                typeName = "std::pair";
+                templateParams = aliasStatement->templateParams;
+            }
         }
-        QStringList phraseExpression = splitExpression(expressionText);
-        int pos = 0;
-        PEvalStatement aliasStatement = doEvalExpression(mCurrentFile,
-                                phraseExpression,
-                                pos,
-                                getCurrentScope(),
-                                PEvalStatement(),
-                                true,false);
-        if(aliasStatement && aliasStatement->effectiveTypeStatement) {
-            if ( mTokenizer[mIndex+1]->text == ":" ) {
-                if (STLMaps.contains(aliasStatement->effectiveTypeStatement->fullName)) {
-                    typeName = "std::pair";
-                    templateParams = aliasStatement->templateParams;
-                }
+        if (typeName == "std::pair" && !templateParams.isEmpty()) {
+            QString firstType = doFindFirstTemplateParamOf(mCurrentFile,aliasStatement->templateParams,
+                                                                              getCurrentScope());
+            QString secondType = doFindTemplateParamOf(mCurrentFile,aliasStatement->templateParams,1,
+                                                                              getCurrentScope());
+            QString s = mTokenizer[mIndex]->text;
+            s = s.mid(1,s.length()-2);
+            QStringList lst = s.split(",");
+            if (lst.length()==2) {
+                QString firstVar = lst[0].trimmed();
+                QString secondVar = lst[1].trimmed();
+                bool isConst = sType.startsWith("const");
+                QString suffix;
+                if (sType.endsWith("&&")) suffix = "&&";
+                else if (sType.endsWith("&")) suffix = "&";
+                doAddVar(firstVar, firstType, isConst, suffix);
+                doAddVar(secondVar, secondType, isConst, suffix);
+                varsAdded = true;
             }
-            if (typeName == "std::pair" && !templateParams.isEmpty()) {
-                QString firstType = doFindFirstTemplateParamOf(mCurrentFile,aliasStatement->templateParams,
-                                                                                  getCurrentScope());
-                QString secondType = doFindTemplateParamOf(mCurrentFile,aliasStatement->templateParams,1,
-                                                                                  getCurrentScope());
-                QString s = mTokenizer[mIndex]->text;
-                s = s.mid(1,s.length()-2);
-                QStringList lst = s.split(",");
-                if (lst.length()==2) {
-                    QString firstVar = lst[0].trimmed();
-                    QString secondVar = lst[1].trimmed();
-                    bool isConst = sType.startsWith("const");
-                    QString suffix;
-                    if (sType.endsWith("&&")) suffix = "&&";
-                    else if (sType.endsWith("&")) suffix = "&";
-                    doAddVar(firstVar, firstType, isConst, suffix);
-                    doAddVar(secondVar, secondType, isConst, suffix);
+        } else if (aliasStatement->effectiveTypeStatement->kind == StatementKind::Class) {
+            QString s = mTokenizer[mIndex]->text;
+            s = s.mid(1,s.length()-2);
+            QStringList lst = s.split(",");
+            if (lst.count()==aliasStatement->effectiveTypeStatement->publicProperties.count()) {
+                for (int i = 0;i<lst.count();i++) {
+                    QString var = lst[i];
+                    if (var.startsWith("..."))
+                        var = var.mid(3);
+                    doAddVar(var, aliasStatement->effectiveTypeStatement->publicProperties[i]->type, false, "");
                 }
+                varsAdded = true;
             }
+        }
+    }
+    if (!varsAdded) {
+        QString s = mTokenizer[mIndex]->text;
+        s = s.mid(1,s.length()-2);
+        QStringList lst = s.split(",");
+        for (QString var: lst) {
+            if (var.startsWith("..."))
+                var = var.mid(3);
+            doAddVar(var, sType, false, "");
         }
     }
     mIndex = indexOfNextPeriodOrSemicolon(mIndex+1, maxIndex);
@@ -4248,15 +4280,17 @@ void CppParser::handleVar(const QString& typePrefix,bool isExtern,bool isStatic,
                 if(aliasStatement) {
                     if (aliasStatement->typeStatement) {
                         addedVar->type = aliasStatement->typeStatement->fullName;
-                        if (!aliasStatement->templateParams.isEmpty()) {
-                            if (!addedVar->type.endsWith(">")) {
-                                addedVar->type += aliasStatement->templateParams;
-                            } else {
-                                QString type = addedVar->type;
-                                int pos = type.indexOf('<');
-                                if (pos>=0) {
-                                    type = type.left(pos);
-                                    addedVar->type = type + aliasStatement->templateParams;
+                        if (aliasStatement->typeStatement->kind != StatementKind::Typedef) {
+                            if (!aliasStatement->templateParams.isEmpty()) {
+                                if (!addedVar->type.endsWith(">")) {
+                                    addedVar->type += aliasStatement->templateParams;
+                                } else {
+                                    QString type = addedVar->type;
+                                    int pos = type.indexOf('<');
+                                    if (pos>=0) {
+                                        type = type.left(pos);
+                                        addedVar->type = type + aliasStatement->templateParams;
+                                    }
                                 }
                             }
                         }
@@ -4586,9 +4620,11 @@ void CppParser::internalParse(const QString &fileName)
 
     QStringList preprocessResult = mPreprocessor.result();
 #ifdef PARSER_DEBUG_LOG
+    if (!mStopForReset) {
         stringsToFile(mPreprocessor.result(),DebugLogFolder+QString("/preprocess-%1.txt").arg(extractFileName(fileName)));
         mPreprocessor.dumpDefinesTo(DebugLogFolder+"/defines.txt");
         mPreprocessor.dumpIncludesListTo(DebugLogFolder+"/includes.txt");
+    }
 #endif
     //qDebug()<<"preprocess"<<timer.elapsed();
     //reduce memory usage
@@ -4605,7 +4641,8 @@ void CppParser::internalParse(const QString &fileName)
     if (mTokenizer.tokenCount() == 0)
         return;
 #ifdef PARSER_DEBUG_LOG
-     mTokenizer.dumpTokens(QString(DebugLogFolder+"/tokens-%1.txt").arg(extractFileName(fileName)));
+    if (!mStopForReset)
+        mTokenizer.dumpTokens(QString(DebugLogFolder+"/tokens-%1.txt").arg(extractFileName(fileName)));
 #endif
 #ifdef QT_DEBUG
         mLastIndex = -1;
@@ -4618,13 +4655,16 @@ void CppParser::internalParse(const QString &fileName)
             break;
     }
 #ifdef PARSER_DEBUG_LOG
-     mTokenizer.dumpTokens(QString(DebugLogFolder+"/tokens-after-%1.txt").arg(extractFileName(fileName)));
+    if (!mStopForReset)
+        mTokenizer.dumpTokens(QString(DebugLogFolder+"/tokens-after-%1.txt").arg(extractFileName(fileName)));
 #endif
     handleInheritances();
     //    qDebug()<<"parse"<<timer.elapsed();
 #ifdef PARSER_DEBUG_LOG
-     mStatementList.dumpAll(QString(DebugLogFolder+"/all-stats-%1.txt").arg(extractFileName(fileName)));
-     mStatementList.dump(QString(DebugLogFolder+"/stats-%1.txt").arg(extractFileName(fileName)));
+    if (!mStopForReset) {
+         mStatementList.dumpAll(QString(DebugLogFolder+"/all-stats-%1.txt").arg(extractFileName(fileName)));
+         mStatementList.dump(QString(DebugLogFolder+"/stats-%1.txt").arg(extractFileName(fileName)));
+    }
 #endif
     //reduce memory usage
     internalClear();
@@ -6585,6 +6625,7 @@ int CppParser::indexOfNextSemicolon(int index, int maxIndex)
         case ';':
             return index;
         case '(':
+        case '{':
             index = mTokenizer[index]->matchIndex+1;
             break;
         default:
@@ -6604,6 +6645,7 @@ int CppParser::indexOfNextPeriodOrSemicolon(int index, int maxIndex)
         case ')':
             return index;
         case '(':
+        case '{':
             index = mTokenizer[index]->matchIndex+1;
             break;
         default:
@@ -6642,6 +6684,7 @@ int CppParser::indexOfNextColon(int index, int maxIndex)
                 index++;
             break;
         case '(':
+        case '{':
             index = mTokenizer[index]->matchIndex+1;
             break;
         default:
@@ -6686,6 +6729,7 @@ int CppParser::indexOfNextRightParenthesis(int index, int maxIndex)
         case ')':
             return index;
         case '(':
+        case '{':
             index = mTokenizer[index]->matchIndex+1;
             break;
         default:
@@ -6704,8 +6748,6 @@ void CppParser::skipNextSemicolon(int index, int endIndex)
             mIndex++;
             return;
         case '{':
-            mIndex = mTokenizer[mIndex]->matchIndex+1;
-            break;
         case '(':
             mIndex = mTokenizer[mIndex]->matchIndex+1;
             break;
