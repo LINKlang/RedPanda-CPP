@@ -11,6 +11,22 @@ Upstream English Website: [https://sourceforge.net/projects/redpanda-cpp](https:
 
 [Donate to Upstream project](https://ko-fi.com/royqh1979)
 
+## WakaTime Integration
+
+![WakaTime settings](docs/images/wakatime.png)
+
+### Setup
+
+1. Install `wakatime-cli` and locate its executable.
+2. Open **Options > Tools > WakaTime**.
+3. Enable WakaTime, select the CLI executable, and enter your API URL and API key.
+4. Click **Test** to verify that the CLI can run.
+5. Click **Apply** or **OK** to save the settings.
+
+The default API URL is `https://api.wakatime.com/api/v1`. Enable **API URLs** to
+route matching files to different endpoints or accounts using regular-expression
+rules.
+
 **New Features (Compared with Red Panda Dev-C++ 6):**
 
 * WakaTime integration for tracking coding activity
