@@ -1,32 +1,12 @@
 name: Build Windows x64 with MinGW
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - "**"
-    paths:
-      - ".github/workflows/build-windows-mingw64.yml"
-      - "CMakeLists.txt"
-      - "RedPandaIDE/**"
-      - "libs/**"
-      - "packages/**"
-      - "platform/windows/**"
-      - "tools/**"
-      - "version.json"
-  pull_request:
-    paths:
-      - ".github/workflows/build-windows-mingw64.yml"
-      - "CMakeLists.txt"
-      - "RedPandaIDE/**"
-      - "libs/**"
-      - "packages/**"
-      - "platform/windows/**"
-      - "tools/**"
-      - "version.json"
+    tags:
+      - "dist-v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows_mingw64:
@@ -41,6 +21,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate release version
+        id: release_version
+        shell: pwsh
+        run: |
+          $releaseInfo = .\tools\new-release-tag.ps1 -PrintOnly -Json | ConvertFrom-Json
+          if ($env:GITHUB_REF_NAME -ne $releaseInfo.tagName) {
+            throw "Tag '$env:GITHUB_REF_NAME' does not match version.json; expected '$($releaseInfo.tagName)'."
+          }
+
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          $outputs = [string[]]@(
+            "upstream_version=$($releaseInfo.upstreamVersion)",
+            "wakatime_version=$($releaseInfo.wakatimeVersion)",
+            "distribution_version=$($releaseInfo.distributionVersion)",
+            "is_prerelease=$(([string]$releaseInfo.isPrerelease).ToLowerInvariant())"
+          )
+          [System.IO.File]::AppendAllLines($env:GITHUB_OUTPUT, $outputs, $utf8NoBom)
+
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -51,8 +49,115 @@ jobs:
         run: |
           ./packages/mingw/build-xp.sh -p 64-ucrt --mingw
 
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows x64 MinGW
-          path: dist/*
+      - name: Create or update draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_UPSTREAM_VERSION: ${{ steps.release_version.outputs.upstream_version }}
+          RELEASE_WAKATIME_VERSION: ${{ steps.release_version.outputs.wakatime_version }}
+          RELEASE_IS_PRERELEASE: ${{ steps.release_version.outputs.is_prerelease }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
+            $PSNativeCommandUseErrorActionPreference = $false
+          }
+
+          $assets = @(Get-ChildItem -LiteralPath "$env:GITHUB_WORKSPACE\dist" -File)
+          $installers = @($assets | Where-Object { $_.Extension -ieq ".exe" })
+          $portablePackages = @($assets | Where-Object { $_.Extension -ieq ".7z" })
+          $unexpectedAssets = @($assets | Where-Object {
+            $_.Extension -ine ".exe" -and $_.Extension -ine ".7z"
+          })
+
+          if ($installers.Count -ne 1 -or
+              $portablePackages.Count -ne 1 -or
+              $unexpectedAssets.Count -ne 0 -or
+              $assets.Count -ne 2) {
+            $found = if ($assets.Count -eq 0) {
+              "<none>"
+            } else {
+              ($assets.Name -join ", ")
+            }
+            throw "Expected exactly one .exe and one .7z in dist; found: $found"
+          }
+
+          $tagName = $env:GITHUB_REF_NAME
+          $releaseTitle = "RedPanda C++ WakaTime $env:RELEASE_WAKATIME_VERSION (upstream $env:RELEASE_UPSTREAM_VERSION)"
+          $isPrerelease = $env:RELEASE_IS_PRERELEASE -eq "true"
+
+          $viewOutput = @(& gh release view $tagName `
+            --repo $env:GITHUB_REPOSITORY `
+            --json isDraft,isPrerelease,url 2>&1)
+          $viewExitCode = $LASTEXITCODE
+
+          if ($viewExitCode -eq 0) {
+            $existingRelease = ($viewOutput -join "`n") | ConvertFrom-Json
+            if (!$existingRelease.isDraft) {
+              throw "Release '$tagName' is already published; refusing to replace its assets."
+            }
+
+            $prereleaseValue = $isPrerelease.ToString().ToLowerInvariant()
+            $editOutput = @(& gh release edit $tagName `
+              --repo $env:GITHUB_REPOSITORY `
+              --title $releaseTitle `
+              "--draft=true" `
+              "--prerelease=$prereleaseValue" 2>&1)
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to update draft release '$tagName':`n$($editOutput -join "`n")"
+            }
+          } else {
+            $viewError = $viewOutput -join "`n"
+            if ($viewError -notmatch "(?i)(release not found|HTTP 404)") {
+              throw "Failed to query release '$tagName':`n$viewError"
+            }
+
+            $createArguments = @(
+              "release", "create", $tagName,
+              "--repo", $env:GITHUB_REPOSITORY,
+              "--verify-tag",
+              "--draft",
+              "--title", $releaseTitle,
+              "--generate-notes"
+            )
+
+            $previousTag = @(& git describe `
+              --tags `
+              --match "dist-v*" `
+              --abbrev=0 `
+              "$($env:GITHUB_SHA)^" 2>$null)
+            if ($LASTEXITCODE -eq 0 -and $previousTag.Count -gt 0) {
+              $createArguments += @("--notes-start-tag", ([string]$previousTag[0]).Trim())
+            }
+            if ($isPrerelease) {
+              $createArguments += "--prerelease"
+            }
+
+            $createOutput = @(& gh @createArguments 2>&1)
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to create draft release '$tagName':`n$($createOutput -join "`n")"
+            }
+          }
+
+          $uploadOutput = @(& gh release upload $tagName `
+            $installers[0].FullName `
+            $portablePackages[0].FullName `
+            --clobber `
+            --repo $env:GITHUB_REPOSITORY 2>&1)
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to upload release assets for '$tagName':`n$($uploadOutput -join "`n")"
+          }
+
+          $releaseUrl = & gh release view $tagName `
+            --repo $env:GITHUB_REPOSITORY `
+            --json url `
+            --jq .url
+          if ($LASTEXITCODE -ne 0) {
+            throw "Assets were uploaded, but the draft release URL could not be read."
+          }
+
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          [System.IO.File]::AppendAllText(
+            $env:GITHUB_STEP_SUMMARY,
+            "Draft release: [$tagName]($releaseUrl)`n",
+            $utf8NoBom
+          )
