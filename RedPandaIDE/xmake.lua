@@ -111,6 +111,7 @@ target("RedPandaIDE")
         "src/settings/languagesettings.cpp",
         "src/settings/uisettings.cpp",
         "src/settings/wakatimesettings.cpp",
+        "src/wakatimeheartbeat.cpp",
         -- utils
         "src/utils/escape.cpp",
         "src/utils/file.cpp",

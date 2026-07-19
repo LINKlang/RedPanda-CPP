@@ -952,7 +952,7 @@ private:
     CodeSnippetsManager *mCodeSnippetManager;
     PTodoParser mTodoParser;
     ToolsManager *mToolsManager;
-    WakaTimeManager *mWakaTimeManager;
+    WakaTimeManager *mWakaTimeManager {nullptr};
     CustomFileSystemModel *mFileSystemModel;
     OJProblemSetModel *mOJProblemSetModel;
     OJProblemModel *mOJProblemModel;

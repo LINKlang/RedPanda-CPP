@@ -1309,6 +1309,9 @@ void MainWindow::onFileSaved(const QString &path, bool inProject)
 
 void MainWindow::onDebugFinished()
 {
+    if (mWakaTimeManager && !mQuitting) {
+        mWakaTimeManager->setDebugging(false);
+    }
     if (cpuDialog()!=nullptr) {
         cpuDialog()->close();
     }
@@ -2836,6 +2839,9 @@ void MainWindow::debug()
         return;
     }
 
+    if (mWakaTimeManager) {
+        mWakaTimeManager->setDebugging(true);
+    }
     updateEditorActions();
 
     mDebugger->runInferior();
@@ -5949,6 +5955,9 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     //        }
     //    }
 
+        if (mWakaTimeManager) {
+            mWakaTimeManager->shutdown();
+        }
         mCCHandler.stop();
         mCompilerManager->stopAllRunners();
         mCompilerManager->stopCompile();
@@ -6142,11 +6151,17 @@ void MainWindow::clearTodos()
 void MainWindow::onCompileStarted()
 {
     mCompileIssuesState = CompileIssuesState::Compiling;
+    if (mWakaTimeManager) {
+        mWakaTimeManager->setBuilding(true);
+    }
 }
 
 void MainWindow::onProjectCompileStarted()
 {
     mCompileIssuesState = CompileIssuesState::ProjectCompiling;
+    if (mWakaTimeManager) {
+        mWakaTimeManager->setBuilding(true);
+    }
 }
 
 void MainWindow::onSyntaxCheckStarted()
@@ -6156,6 +6171,9 @@ void MainWindow::onSyntaxCheckStarted()
 
 void MainWindow::onCompileFinished(QString filename, bool isCheckSyntax)
 {
+    if (!isCheckSyntax && mWakaTimeManager && !mQuitting) {
+        mWakaTimeManager->setBuilding(false);
+    }
     if (mQuitting) {
         if (isCheckSyntax)
             mCheckSyntaxInBack = false;
@@ -8393,11 +8411,19 @@ void MainWindow::invalidateProjectProxyModel()
 
 void MainWindow::on_EditorTabsLeft_currentChanged(int)
 {
+    if (mWakaTimeManager && mEditorManager) {
+        mWakaTimeManager->onEditorActivated(
+            mEditorManager->getEditor(-1, ui->EditorTabsLeft));
+    }
 }
 
 
 void MainWindow::on_EditorTabsRight_currentChanged(int)
 {
+    if (mWakaTimeManager && mEditorManager && ui->EditorTabsRight->isVisible()) {
+        mWakaTimeManager->onEditorActivated(
+            mEditorManager->getEditor(-1, ui->EditorTabsRight));
+    }
 }
 
 void MainWindow::on_tableTODO_doubleClicked(const QModelIndex &index)

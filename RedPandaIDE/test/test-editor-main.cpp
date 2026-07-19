@@ -1,5 +1,6 @@
 #include <QTest>
 #include <QGuiApplication>
+#include "test_editor_autosave.h"
 #include "test_editor_symbol_completion.h"
 
 int main(int argc, char *argv[]) {
@@ -10,6 +11,10 @@ int main(int argc, char *argv[]) {
     //CharPos Test
     {
         TestEditorSymbolCompletion tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
+        TestEditorAutoSave tc;
         status |= QTest::qExec(&tc, argc, argv);
     }
 

@@ -290,6 +290,7 @@ bool Editor::save(bool force, bool doReparse) {
         if (mFileSystemWatcher)
             mFileSystemWatcher->addPath(mFilename);
         setModified(false);
+        mCanAutoSave = false;
         mIsNew = false;
         setStatusChanged(QSynedit::StatusChange::Custom0);
     } catch (FileError& exception) {
@@ -411,6 +412,7 @@ bool Editor::saveAs(const QString &name, bool doCheckSyntax){
             mFileSystemWatcher->addPath(mFilename);
         mIsNew = false;
         setModified(false);
+        mCanAutoSave = false;
         setStatusChanged(QSynedit::StatusChange::Custom0);
     }  catch (FileError& exception) {
         if (mFileSystemWatcher)

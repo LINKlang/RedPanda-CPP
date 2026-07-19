@@ -13,6 +13,7 @@ target_qt_plain_cpp(RedPandaIDE
     src/systemconsts
     src/utils
     src/visithistorymanager
+    src/wakatimeheartbeat
     # compiler
     src/compiler/compilerinfo
     # debugger
@@ -267,6 +268,7 @@ target_moc_classes(test-editor
     src/codesnippetsmanager
     #test
     test/test_editor_base
+    test/test_editor_autosave
     test/test_editor_symbol_completion
 )
 target_include_directories(test-editor PRIVATE
@@ -307,6 +309,34 @@ add_test(
     COMMAND test-editor)
 
 add_dependencies(all-test-targets test-editor)
+
+#####################
+# test-wakatime     #
+#####################
+
+add_executable(test-wakatime test/test-wakatime-main.cpp)
+
+target_qt_plain_cpp(test-wakatime
+    src/wakatimeheartbeat
+    )
+
+target_moc_classes(test-wakatime
+    test/test_wakatimeheartbeat
+    )
+
+target_include_directories(test-wakatime PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(test-wakatime PRIVATE
+    Qt::Core
+    Qt::Test
+    qsynedit)
+
+add_test(
+    NAME test-wakatime
+    COMMAND test-wakatime)
+
+add_dependencies(all-test-targets test-wakatime)
 
 #####################
 # test-cppparser    #

@@ -1545,7 +1545,7 @@ bool CppPreprocessor::evalNumber(const QString &expr, int &result, int &pos)
         s.resize(s.length()-1);
         result = s.toLong(&ok, 0);
     } else if (s.endsWith("U",Qt::CaseInsensitive)) {
-        s.resize(s.length()-1,1);
+        s.resize(s.length()-1);
         result = s.toUInt(&ok, 0);
     } else {
         result = s.toInt(&ok, 0);
@@ -1966,5 +1966,4 @@ int CppPreprocessor::evaluateExpression(QString line)
         return -1;
     return result;
 }
-
 
