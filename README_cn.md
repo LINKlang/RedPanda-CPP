@@ -5,11 +5,11 @@
 
 小熊猫C++ (曾经用过的名称: 小熊猫Dev-C++ 7) 是一款快速、轻量、开源并且跨平台的C/C++/GNU的编译工具。(Assembly IDE).
 
-简体中文网站: [http://royqh.net/redpandacpp](http://royqh.net/redpandacpp)
+上游项目简体中文网站: [http://royqh.net/redpandacpp](http://royqh.net/redpandacpp)
 
-英文网站: [https://sourceforge.net/projects/redpanda-cpp](https://sourceforge.net/projects/redpanda-cpp)
+上游项目英文网站: [https://sourceforge.net/projects/redpanda-cpp](https://sourceforge.net/projects/redpanda-cpp)
 
-[为这个项目捐款](https://ko-fi.com/royqh1979)
+[为上游项目捐款](https://ko-fi.com/royqh1979)
 
 ## WakaTime 集成
 
@@ -28,9 +28,9 @@
 新特性 (相对于上一版本：Red Panda Dev-C++ 6):
 * 集成 WakaTime，用于跟踪编码活动
 * 跨平台 (Windows/Linux/MacOS)
-* 编辑、管理和使用试题集来测试程序(根据预定义的输入运行程序，比较实际输出和预期结果）。
-* 支持Competitive Companion(chrome/firefox浏览器的插件），从OJ网站上下载试题集。
-* 编辑、编译、运行、调试汇编语言程序（GNU汇编器 / NASM）.
+* 编辑、管理和使用试题集来测试程序(根据预定义的输入运行程序，比较实际输出和预期结果)。
+* 支持Competitive Companion(chrome/firefox浏览器的插件)，从OJ网站上下载试题集。
+* 编辑、编译、运行、调试汇编语言程序(GNU汇编器 / NASM).
 * 查找符号引用。
 * 在调试时查看内存查看功能。
 * TODO标签管理
@@ -66,3 +66,4 @@
 ## 致谢
 
 [Lua](https://www.lua.org/) 5.4.6 ([源代码镜像](https://github.com/lua/lua/tree/v5.4.6)) 用作附加组件运行环境。
+- 上游项目 [royqh1979/RedPanda-CPP](https://github.com/royqh1979/RedPanda-CPP) 由 royqh1979 创建。

@@ -5,11 +5,11 @@
 
 Red Panda C++ (Прежнее название: Red Panda Dev-C++ 7) - быстрая, легкая, открытая и кроссплатформенная среда разработки на языках Си/Си++/GNU Assembly.
 
-Сайт (английский язык): [https://sourceforge.net/projects/redpanda-cpp](https://sourceforge.net/projects/redpanda-cpp)
+Сайт исходного проекта (английский язык): [https://sourceforge.net/projects/redpanda-cpp](https://sourceforge.net/projects/redpanda-cpp)
 
-Сайт (упрощенный китайский язык): [http://royqh.net/redpandacpp](http://royqh.net/redpandacpp)
+Сайт исходного проекта (упрощенный китайский язык): [http://royqh.net/redpandacpp](http://royqh.net/redpandacpp)
 
-[Поддержать проект...](https://ko-fi.com/royqh1979)
+[Поддержать исходный проект...](https://ko-fi.com/royqh1979)
 
 ## Интеграция WakaTime
 
@@ -66,3 +66,4 @@ URL API по умолчанию: `https://api.wakatime.com/api/v1`. Включи
 ## Благодарности
 
 [Lua](https://www.lua.org/) 5.4.6 ([зеркало исходного кода](https://github.com/lua/lua/tree/v5.4.6)) используется в качестве дополнения времени выполнения.
+- Исходный проект [royqh1979/RedPanda-CPP](https://github.com/royqh1979/RedPanda-CPP) создан royqh1979.
